@@ -1,5 +1,6 @@
 ﻿@page "/fetchdata"
 
+@using System.Text.Json
 @inject IHttpClientFactory HttpClientFactory
 @inject Microsoft.Identity.Web.ITokenAcquisition TokenAcquisitionService
 
@@ -36,6 +37,7 @@ else
 @code {
 
     private string userDisplayName;
+    private string profileImage;
     private List<MailMessage> messages = new List<MailMessage>();
 
     private HttpClient _httpClient;
@@ -43,8 +45,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient();
-
-
+        
         // get a token
         var token = await TokenAcquisitionService.GetAccessTokenForUserAsync(new string[] { "User.Read", "Mail.Read" });
 
@@ -54,10 +55,10 @@ else
 
         if (dataRequest.IsSuccessStatusCode)
         {
-            var userData = System.Text.Json.JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
+            var userData = JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
             userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
         }
-
+        
         var mailRequest = await _httpClient.GetAsync("https://graph.microsoft.com/beta/me/messages?$select=subject,receivedDateTime,sender&$top=10");
 
         if (mailRequest.IsSuccessStatusCode)

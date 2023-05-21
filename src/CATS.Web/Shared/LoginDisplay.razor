@@ -1,9 +1,56 @@
-﻿<AuthorizeView>
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Text.Json
+
+@inject IHttpClientFactory HttpClientFactory
+@inject Microsoft.Identity.Web.ITokenAcquisition TokenAcquisitionService
+
+<AuthorizeView>
     <Authorized>
-        Hello, @context.User.Identity?.Name!
+        <a href="/settings" title="User Settings">
+            <img src="@userPhoto" height="40" width="40" class="rounded-circle mx-3" />
+        </a>
+        
+        <div class="lh-sm">
+            @userDisplayName <br/>
+            <span class="fs-6 text-black-50">@userCompany</span>
+        </div>
+        
         <a href="MicrosoftIdentity/Account/SignOut">Log out</a>
     </Authorized>
     <NotAuthorized>
         <a href="MicrosoftIdentity/Account/SignIn">Log in</a>
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    private HttpClient _httpClient;
+    
+    private string? userDisplayName;
+    private string? userCompany;
+    private string? userPhoto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpClientFactory.CreateClient();
+        
+        // get a token
+        var token = await TokenAcquisitionService.GetAccessTokenForUserAsync(new string[] { "User.Read", "Mail.Read" });
+        
+        // make API call
+        _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var profileRequest = await _httpClient.GetAsync("https://graph.microsoft.com/beta/me?$select=displayName,companyName,mail");
+        var photoDataRequest = await _httpClient.GetAsync("https://graph.microsoft.com/beta/me/photo");
+        var photoRequest = await _httpClient.GetAsync("https://graph.microsoft.com/beta/me/photo/$value");
+        
+        if (profileRequest.IsSuccessStatusCode && photoRequest.IsSuccessStatusCode && photoDataRequest.IsSuccessStatusCode)
+        {
+            var userData = JsonDocument.Parse(await profileRequest.Content.ReadAsStreamAsync());
+            userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
+            userCompany = userData.RootElement.GetProperty("mail").GetString();
+            var photoData = JsonDocument.Parse(await photoDataRequest.Content.ReadAsStreamAsync());
+            var photoType = photoData.RootElement.GetProperty("@odata.mediaContentType").GetString();
+            var photoBase64 = Convert.ToBase64String(await photoRequest.Content.ReadAsByteArrayAsync());
+            userPhoto = $"data:{photoType};base64,{photoBase64}";
+        }
+    }
+}

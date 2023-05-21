@@ -1,20 +1,24 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Net.Http.Headers
+@inherits LayoutComponentBase
 
 <PageTitle>CATS.Web</PageTitle>
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu/>
+    <header class="top-row px-4 auth">
+        <h4 class="m-0 text-black-50">Correspondence & Action Tracking System</h4>
+        <div class="flex-fill"></div>
+        <LoginDisplay/>
+    </header>
+    
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <NavMenu/>
+        </aside>
+
+        <main>
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
     </div>
-
-    <main>
-        <div class="top-row px-4 auth">
-            <LoginDisplay/>
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
 </div>
